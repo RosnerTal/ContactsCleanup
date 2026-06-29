@@ -92,4 +92,7 @@ dependencies {
   // Serialization & Icons
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.androidx.compose.material.icons.extended)
+
+  // Google Play Billing
+  implementation("com.android.billingclient:billing-ktx:6.1.0")
 }

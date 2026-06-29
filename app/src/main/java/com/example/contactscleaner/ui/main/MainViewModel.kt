@@ -227,6 +227,30 @@ class MainViewModel(private val repository: ContactsCleanerRepository) : ViewMod
         }
     }
 
+    private var billingManager: com.example.contactscleaner.data.BillingManager? = null
+
+    fun initializeBilling(context: android.content.Context) {
+        if (billingManager == null) {
+            billingManager = com.example.contactscleaner.data.BillingManager(
+                context = context.applicationContext,
+                repository = repository,
+                onUpgradeSuccess = {
+                    loadData()
+                    _uiState.update { it.copy(showPremiumDialog = false, successMessage = "Lifetime Premium Activated!") }
+                },
+                onError = { error ->
+                    _uiState.update { it.copy(errorMessage = error) }
+                }
+            )
+        }
+    }
+
+    fun makePurchase(activity: android.app.Activity) {
+        billingManager?.launchBillingFlow(activity) ?: run {
+            _uiState.update { it.copy(errorMessage = "Billing system is not initialized.") }
+        }
+    }
+
     fun emailDeletingContactsBackup() {
         viewModelScope.launch {
             try {
@@ -236,14 +260,6 @@ class MainViewModel(private val repository: ContactsCleanerRepository) : ViewMod
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Emailing backup failed: ${e.message}") }
             }
-        }
-    }
-
-    fun upgradeToPremium() {
-        viewModelScope.launch {
-            repository.setPremium(true)
-            loadData()
-            _uiState.update { it.copy(showPremiumDialog = false, successMessage = "Lifetime Premium Activated!") }
         }
     }
 

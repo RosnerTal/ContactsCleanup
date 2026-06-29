@@ -61,6 +61,10 @@ fun MainScreen(
     val prefs = remember { context.getSharedPreferences("unused_contacts_prefs", android.content.Context.MODE_PRIVATE) }
     var isFirstUse by remember { mutableStateOf(prefs.getBoolean("is_first_use", true)) }
 
+    LaunchedEffect(Unit) {
+        viewModel.initializeBilling(context)
+    }
+
     if (isFirstUse) {
         OnboardingScreen(onComplete = {
             prefs.edit().putBoolean("is_first_use", false).apply()
@@ -838,11 +842,16 @@ fun MainScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.upgradeToPremium() },
+                    onClick = {
+                        val activity = context as? android.app.Activity
+                        if (activity != null) {
+                            viewModel.makePurchase(activity)
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Simulate In-App Purchase ($3.99)", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Unlock Lifetime Premium ($3.99)", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
