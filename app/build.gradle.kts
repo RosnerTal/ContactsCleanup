@@ -7,10 +7,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.contactscleaner"
+    namespace = "com.rosnertal.unusedcontactscleaner"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.contactscleaner"
+        applicationId = "com.rosnertal.unusedcontactscleaner"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

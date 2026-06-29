@@ -35,7 +35,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.example.contactscleaner.provider"
+            android:authorities="com.rosnertal.unusedcontactscleaner.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
