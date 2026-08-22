@@ -14,7 +14,7 @@ class BillingManager(
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
         .build()
 
     private var productDetails: ProductDetails? = null
@@ -49,15 +49,26 @@ class BillingManager(
         )
 
         val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                productDetails = productDetailsList.find { it.productId == "premium_lifetime" }
-                // Check if user already owns premium
-                queryPurchases()
-            } else {
-                Log.e("BillingManager", "Query products failed: ${billingResult.debugMessage}")
+        billingClient.queryProductDetailsAsync(params, object : ProductDetailsResponseListener {
+            override fun onProductDetailsResponse(billingResult: BillingResult, queryProductDetailsResult: QueryProductDetailsResult) {
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    productDetails = null
+                    val list = queryProductDetailsResult.productDetailsList
+                    if (list != null) {
+                        for (details in list) {
+                            if (details.productId == "premium_lifetime") {
+                                productDetails = details
+                                break
+                            }
+                        }
+                    }
+                    // Check if user already owns premium
+                    queryPurchases()
+                } else {
+                    Log.e("BillingManager", "Query products failed: ${billingResult.debugMessage}")
+                }
             }
-        }
+        })
     }
 
     fun queryPurchases() {
@@ -65,18 +76,24 @@ class BillingManager(
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
 
-        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val premiumOwned = purchases.any { purchase ->
-                    purchase.products.contains("premium_lifetime") &&
-                    purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-                }
-                if (premiumOwned) {
-                    repository.setPremium(true)
-                    onUpgradeSuccess()
+        billingClient.queryPurchasesAsync(params, object : PurchasesResponseListener {
+            override fun onQueryPurchasesResponse(billingResult: BillingResult, purchases: List<Purchase>) {
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    var premiumOwned = false
+                    for (purchase in purchases) {
+                        if (purchase.products.contains("premium_lifetime") &&
+                            purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                            premiumOwned = true
+                            break
+                        }
+                    }
+                    if (premiumOwned) {
+                        repository.setPremium(true)
+                        onUpgradeSuccess()
+                    }
                 }
             }
-        }
+        })
     }
 
     fun launchBillingFlow(activity: Activity) {

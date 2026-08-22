@@ -108,5 +108,5 @@ dependencies {
   implementation(libs.androidx.compose.material.icons.extended)
 
   // Google Play Billing
-  implementation("com.android.billingclient:billing-ktx:6.1.0")
+  implementation("com.android.billingclient:billing-ktx:9.1.0")
 }
