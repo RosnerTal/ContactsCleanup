@@ -78,19 +78,10 @@ fun MainScreen(
         mutableStateOf(prefs.getBoolean("suggested_backup_on_first_use", true))
     }
     
-    var isNotificationListenerEnabled by remember {
-        mutableStateOf(
-            NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
-        )
-    }
-
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                isNotificationListenerEnabled = NotificationManagerCompat
-                    .getEnabledListenerPackages(context)
-                    .contains(context.packageName)
                 viewModel.loadData()
             }
         }
@@ -500,7 +491,7 @@ fun MainScreen(
                     }
                 }
 
-                if (filteredContacts.isEmpty() && isNotificationListenerEnabled && state.backups.isNotEmpty()) {
+                if (filteredContacts.isEmpty() && state.backups.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -517,61 +508,6 @@ fun MainScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        // WhatsApp banner inside the LazyColumn so it scrolls out of view naturally
-                        if (!isNotificationListenerEnabled) {
-                            item {
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFF1E3A8A).copy(alpha = 0.8f)
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "WhatsApp Scanning Disabled",
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                fontSize = 14.sp
-                                            )
-                                            Text(
-                                                text = "Grant notification access to track your WhatsApp chats.",
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                fontSize = 12.sp
-                                            )
-                                        }
-                                        Button(
-                                            onClick = {
-                                                try {
-                                                    context.startActivity(
-                                                        android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS").apply {
-                                                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                                                        }
-                                                    )
-                                                } catch (e: Exception) {
-                                                    context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS))
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFF10B981)
-                                            ),
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Text("Enable", color = Color.White, fontSize = 12.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
                         // Backup First card inside the LazyColumn so it scrolls away
                         item {
                             BackupStatusCard(
@@ -1362,7 +1298,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         ),
         OnboardingSlide(
             title = "Passive Interaction Tracking",
-            description = "The app scans your device's Call Logs, SMS logs, and WhatsApp notification interceptions to calculate exactly when and how often you last spoke.",
+            description = "The app scans your device's Call Logs and SMS logs to calculate exactly when and how often you last spoke.",
             icon = Icons.Default.History
         ),
         OnboardingSlide(

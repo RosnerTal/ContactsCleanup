@@ -20,12 +20,6 @@ data class IgnoredContact(
     val phoneNumber: String
 )
 
-@Entity(tableName = "whatsapp_interactions")
-data class WhatsAppInteraction(
-    @PrimaryKey val contactName: String,
-    val timestamp: Long
-)
-
 @Entity(tableName = "contact_classifications")
 data class ContactClassification(
     @PrimaryKey val contactId: String,
@@ -51,15 +45,6 @@ interface IgnoredContactDao {
 }
 
 @Dao
-interface WhatsAppInteractionDao {
-    @Query("SELECT * FROM whatsapp_interactions")
-    suspend fun getAllInteractions(): List<WhatsAppInteraction>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(interaction: WhatsAppInteraction): Unit
-}
-
-@Dao
 interface ContactClassificationDao {
     @Query("SELECT * FROM contact_classifications")
     suspend fun getAllClassifications(): List<ContactClassification>
@@ -74,10 +59,9 @@ interface ContactClassificationDao {
     suspend fun clearAllClassifications(): Unit
 }
 
-@Database(entities = [IgnoredContact::class, WhatsAppInteraction::class, ContactClassification::class], version = 3, exportSchema = false)
+@Database(entities = [IgnoredContact::class, ContactClassification::class], version = 4, exportSchema = false)
 abstract class IgnoreDatabase : RoomDatabase() {
     abstract fun ignoredContactDao(): IgnoredContactDao
-    abstract fun whatsappInteractionDao(): WhatsAppInteractionDao
     abstract fun contactClassificationDao(): ContactClassificationDao
 
     companion object {

@@ -24,16 +24,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".WhatsAppNotificationListenerService"
-            android:label="WhatsApp Scanner"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.rosnertal.unusedcontactscleaner.provider"

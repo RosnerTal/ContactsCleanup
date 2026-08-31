@@ -13,8 +13,8 @@ android {
         applicationId = "com.rosnertal.unusedcontactscleaner"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
     }
 
     signingConfigs {
@@ -28,7 +28,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
@@ -109,4 +110,7 @@ dependencies {
 
   // Google Play Billing
   implementation("com.android.billingclient:billing-ktx:9.1.0")
+
+  // Fragment (overrides outdated transitive 1.1.0)
+  implementation("androidx.fragment:fragment-ktx:1.8.6")
 }

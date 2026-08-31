@@ -27,7 +27,7 @@ data class ScannedContact(
 )
 
 enum class ContactType {
-    CALL, SMS, WHATSAPP
+    CALL, SMS
 }
 
 data class ContactAccount(
@@ -174,23 +174,17 @@ class ContactScanner(private val context: Context) {
             }
         }
 
-        // 3. Scan Call Log for last interaction (supporting WhatsApp system logs)
+        // 3. Scan Call Log for last interaction
         val lastCallMap = mutableMapOf<String, Long>() // ContactId -> Timestamp
-        val lastWhatsAppCallMap = mutableMapOf<String, Long>() // ContactId -> Timestamp
         val callCountMap = mutableMapOf<String, Int>() // ContactId -> Count
         try {
             val callLogUri = CallLog.Calls.CONTENT_URI
-            val callProjection = arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE, "phone_account_component_name")
-            val callCursor = try {
-                resolver.query(callLogUri, callProjection, null, null, "${CallLog.Calls.DATE} DESC")
-            } catch (e: Exception) {
-                resolver.query(callLogUri, arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE), null, null, "${CallLog.Calls.DATE} DESC")
-            }
+            val callProjection = arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE)
+            val callCursor = resolver.query(callLogUri, callProjection, null, null, "${CallLog.Calls.DATE} DESC")
 
             callCursor?.use { cc ->
                 val numberIndex = cc.getColumnIndex(CallLog.Calls.NUMBER)
                 val dateIndex = cc.getColumnIndex(CallLog.Calls.DATE)
-                val componentIndex = cc.getColumnIndex("phone_account_component_name")
 
                 while (cc.moveToNext()) {
                     val number = cc.getString(numberIndex) ?: continue
@@ -198,20 +192,8 @@ class ContactScanner(private val context: Context) {
                     val normalized = normalizePhoneNumber(number)
                     val contactId = phoneToContactId[normalized]
                     if (contactId != null) {
-                        val isWhatsApp = if (componentIndex != -1) {
-                            cc.getString(componentIndex)?.contains("com.whatsapp", ignoreCase = true) == true
-                        } else {
-                            false
-                        }
-
-                        if (isWhatsApp) {
-                            if (!lastWhatsAppCallMap.containsKey(contactId)) {
-                                lastWhatsAppCallMap[contactId] = date
-                            }
-                        } else {
-                            if (!lastCallMap.containsKey(contactId)) {
-                                lastCallMap[contactId] = date
-                            }
+                        if (!lastCallMap.containsKey(contactId)) {
+                            lastCallMap[contactId] = date
                         }
                         callCountMap[contactId] = (callCountMap[contactId] ?: 0) + 1
                     }
@@ -249,16 +231,7 @@ class ContactScanner(private val context: Context) {
             Log.e("ContactScanner", "Failed to scan SMS logs", e)
         }
 
-        // 5. Scan WhatsApp interactions from database (collected passively via notification listener)
-        val whatsappInteractionsMap = try {
-            val db = IgnoreDatabase.getDatabase(context)
-            db.whatsappInteractionDao().getAllInteractions().associate { it.contactName to it.timestamp }
-        } catch (e: Exception) {
-            Log.e("ContactScanner", "Failed to fetch WhatsApp notification interactions", e)
-            emptyMap()
-        }
-
-        // 6. Scan for emails
+        // 5. Scan for emails
         val emailsMap = mutableMapOf<String, MutableList<String>>()
         try {
             val emailUri = ContactsContract.CommonDataKinds.Email.CONTENT_URI
@@ -285,26 +258,16 @@ class ContactScanner(private val context: Context) {
             val lastCall = lastCallMap[contact.id]
             val lastSms = lastSmsMap[contact.id]
             
-            val lastWhatsAppCall = lastWhatsAppCallMap[contact.id]
-            val lastWhatsAppNotif = whatsappInteractionsMap[contact.displayName]
-            val lastWhatsApp = when {
-                lastWhatsAppCall != null && lastWhatsAppNotif != null -> maxOf(lastWhatsAppCall, lastWhatsAppNotif)
-                lastWhatsAppCall != null -> lastWhatsAppCall
-                lastWhatsAppNotif != null -> lastWhatsAppNotif
-                else -> null
-            }
-            
-            val lastTimestamp = listOfNotNull(lastCall, lastSms, lastWhatsApp).maxOrNull()
+            val lastTimestamp = listOfNotNull(lastCall, lastSms).maxOrNull()
             
             val type = when (lastTimestamp) {
                 null -> null
-                lastWhatsApp -> ContactType.WHATSAPP
                 lastCall -> ContactType.CALL
                 else -> ContactType.SMS
             }
 
             val contactClassification = classifications[contact.id] ?: Classification.UNSORTED
-            val totalInteractions = (callCountMap[contact.id] ?: 0) + (smsCountMap[contact.id] ?: 0) + (if (lastWhatsApp != null) 1 else 0)
+            val totalInteractions = (callCountMap[contact.id] ?: 0) + (smsCountMap[contact.id] ?: 0)
 
             contact.copy(
                 lastContactedTimestamp = lastTimestamp,
